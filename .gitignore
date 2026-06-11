@@ -1,0 +1,58 @@
+# =====================
+# Backend
+# =====================
+
+crm-backend/node_modules/
+crm-backend/dist/
+crm-backend/build/
+
+crm-backend/.env
+crm-backend/.env.*
+
+# Prisma
+crm-backend/prisma/dev.db
+crm-backend/prisma/dev.db-journal
+
+# =====================
+# Mobile
+# =====================
+
+crm-mobile/node_modules/
+
+crm-mobile/.expo/
+crm-mobile/.expo-shared/
+
+crm-mobile/android/app/build/
+crm-mobile/android/build/
+
+crm-mobile/ios/build/
+
+crm-mobile/.env
+crm-mobile/.env.*
+
+# =====================
+# Logs
+# =====================
+
+*.log
+logs/
+
+# =====================
+# TypeScript
+# =====================
+
+*.tsbuildinfo
+
+# =====================
+# IDE
+# =====================
+
+.vscode/
+.idea/
+
+# =====================
+# OS
+# =====================
+
+.DS_Store
+Thumbs.db
