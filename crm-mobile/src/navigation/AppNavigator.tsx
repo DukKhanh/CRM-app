@@ -10,6 +10,11 @@ import CustomerListScreen from '../screens/CustomerListScreen';
 import AddCustomerScreen from '../screens/AddCustomerScreen';
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
+import TaskListScreen from '../screens/TaskListScreen';
+import AddTaskScreen from '../screens/AddTaskScreen';
+import ProfileScreen from '../screens/ProfileScreen';
+import CustomerDetailScreen from '../screens/CustomerDetailScreen';
+import EditCustomerScreen from '../screens/EditCustomerScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -57,6 +62,49 @@ export default function AppNavigator() {
                 headerShown: true,
               }}
             />
+
+            <Stack.Screen
+              name="TaskList"
+              component={TaskListScreen}
+              options={{
+                title: 'Danh sách Công Việc',
+                headerShown: true,
+              }}
+            />
+
+            <Stack.Screen
+              name="AddTask"
+              component={AddTaskScreen}
+              options={{
+                title: 'Thêm Công Việc',
+                headerShown: true,
+              }}
+            />
+
+            <Stack.Screen
+              name="Profile"
+              component={ProfileScreen}
+              options={{
+                title: 'Hồ Sơ Cá Nhân',
+                headerShown: true,
+              }}
+            />
+
+            <Stack.Screen
+              name="CustomerDetail"
+              component={CustomerDetailScreen}
+              options={{ 
+                title: 'Chi tiết Khách Hàng', 
+                headerShown: true }}
+             /> 
+
+             <Stack.Screen
+              name="EditCustomer"
+              component={EditCustomerScreen}
+              options={{ 
+                title: 'Chỉnh sửa Khách Hàng', 
+                headerShown: true }}
+             />
           </>
         )}
       </Stack.Navigator>

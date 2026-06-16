@@ -24,6 +24,9 @@ export default function LoginScreen({ navigation }: any) {
       Alert.alert('Thành công', 'Đăng nhập thành công!');
       // TODO: Điều hướng sang Dashboard sau này
     } catch (error: any) {
+      console.log('--- LỖI ĐĂNG NHẬP ---');
+      console.log(error.message);
+      console.log(error.response?.data);
       Alert.alert('Lỗi', error.response?.data?.message || 'Đăng nhập thất bại');
     }
   };

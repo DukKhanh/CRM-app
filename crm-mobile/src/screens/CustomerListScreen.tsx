@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, ActivityIndicator, TextInput } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchCustomers } from '../store/customerSlice';
 import { RootState, AppDispatch } from '../store';
@@ -7,7 +7,10 @@ import { RootState, AppDispatch } from '../store';
 export default function CustomerListScreen({ navigation }: any) {
   const dispatch = useDispatch<AppDispatch>();
   const { list, loading } = useSelector((state: RootState) => state.customer);
-
+  const [search, setSearch] = React.useState('');
+  const filteredList = list.filter((item: any) =>
+    item.name.toLowerCase().includes(search.toLowerCase()) || (item.phone && item.phone.includes(search)) || (item.email && item.email.toLowerCase().includes(search.toLowerCase()))
+  );
   // Gọi API mỗi khi màn hình này được focus (hiển thị lên)
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
@@ -18,7 +21,7 @@ export default function CustomerListScreen({ navigation }: any) {
 
   // Thiết kế giao diện từng dòng khách hàng
   const renderItem = ({ item }: any) => (
-    <TouchableOpacity style={styles.card} onPress={() => console.log('Sẽ làm màn Chi tiết sau', item.id)}>
+    <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('CustomerDetail', { customerId: item.id })}>
       <Text style={styles.name}>{item.name}</Text>
       <Text style={styles.info}>📞 {item.phone || 'Chưa có SĐT'}</Text>
       <Text style={styles.info}>📧 {item.email || 'Chưa có Email'}</Text>
@@ -27,11 +30,17 @@ export default function CustomerListScreen({ navigation }: any) {
 
   return (
     <View style={styles.container}>
+      <TextInput
+        style={styles.searchInput}
+        placeholder="Tìm kiếm theo tên hoặc SĐT ... "
+        value={search}
+        onChangeText={setSearch}
+      />
       {loading ? (
         <ActivityIndicator size="large" color="blue" style={{ marginTop: 50 }} />
       ) : (
         <FlatList
-          data={list}
+          data={filteredList}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
           ListEmptyComponent={<Text style={styles.empty}>Chưa có khách hàng nào.</Text>}
@@ -54,5 +63,6 @@ const styles = StyleSheet.create({
   empty: { textAlign: 'center', marginTop: 50, color: '#888' },
   
   fab: { position: 'absolute', width: 60, height: 60, alignItems: 'center', justifyContent: 'center', right: 20, bottom: 30, backgroundColor: 'blue', borderRadius: 30, elevation: 5 },
-  fabText: { fontSize: 30, color: 'white', marginTop: -3 }
+  fabText: { fontSize: 30, color: 'white', marginTop: -3 },
+  searchInput: { backgroundColor: '#fff', padding: 10, margin: 15, borderRadius: 8, borderWidth: 1, borderColor: '#ddd' },
 });
