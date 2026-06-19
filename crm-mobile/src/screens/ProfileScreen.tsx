@@ -5,8 +5,7 @@ import * as ImagePicker from 'expo-image-picker';
 import axiosClient from '../api/axiosClient';
 import { updateUser } from '../store/authSlice';
 import { RootState } from '../store';
-
-export default function ProfileScreen() {
+export default function ProfileScreen({ navigation }: any) {
   const dispatch = useDispatch();
   const user = useSelector((state: RootState) => state.auth.user);
 
@@ -85,6 +84,15 @@ export default function ProfileScreen() {
 
       <Text style={styles.label}>Vai trò</Text>
       <TextInput style={[styles.input, { backgroundColor: '#e0e0e0', color: '#888' }]} value={user?.role} editable={false} />
+      
+      <TouchableOpacity
+        style={styles.changePasswordButton}
+        onPress={() => navigation.navigate('ChangePassword')}
+      >
+       <Text style={styles.changePasswordText}>
+        ĐỔI MẬT KHẨU
+        </Text>
+</TouchableOpacity>
 
       <View style={{ marginTop: 20 }}>
         {loading ? (
@@ -105,5 +113,7 @@ const styles = StyleSheet.create({
   avatarText: { fontSize: 20, color: '#fff' },
   editBadge: { position: 'absolute', bottom: 0, right: 0, backgroundColor: 'blue', padding: 8, borderRadius: 20 },
   label: { fontWeight: 'bold', marginBottom: 5, marginTop: 15 },
-  input: { borderWidth: 1, borderColor: '#ccc', padding: 12, borderRadius: 5, fontSize: 16 }
+  input: { borderWidth: 1, borderColor: '#ccc', padding: 12, borderRadius: 5, fontSize: 16 },
+  changePasswordButton: { backgroundColor: '#ff9800', padding: 12, borderRadius: 5, marginTop: 20, alignItems: 'center' },
+  changePasswordText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
 });

@@ -15,6 +15,8 @@ import AddTaskScreen from '../screens/AddTaskScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import CustomerDetailScreen from '../screens/CustomerDetailScreen';
 import EditCustomerScreen from '../screens/EditCustomerScreen';
+import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
+import ChangePasswordScreen from '../screens/ChangePasswordScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -36,6 +38,14 @@ export default function AppNavigator() {
             <Stack.Screen
               name="Register"
               component={RegisterScreen}
+            />
+            <Stack.Screen
+              name="ForgotPassword"
+              component={ForgotPasswordScreen}
+              options={{
+                title: 'Quên mật khẩu',
+                headerShown: true,
+              }}
             />
           </>
         ) : (
@@ -105,6 +115,14 @@ export default function AppNavigator() {
                 title: 'Chỉnh sửa Khách Hàng', 
                 headerShown: true }}
              />
+
+             <Stack.Screen
+              name="ChangePassword"
+              component={ChangePasswordScreen}
+              options={{ 
+                title: 'Đổi mật khẩu', 
+                headerShown: true }}
+              />      
           </>
         )}
       </Stack.Navigator>

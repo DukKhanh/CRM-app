@@ -36,7 +36,16 @@ export default function AddTaskScreen({ navigation }: any) {
 
   const handleSave = async () => {
     if (!title || !customerId) return Alert.alert('Lỗi', 'Vui lòng nhập Tên CV và chọn Khách hàng');
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const selectedDate = new Date(deadline);
+    selectedDate.setHours(0, 0, 0, 0);
 
+    if (selectedDate < today) {
+      return Alert.alert('Lỗi', 'Không thể chọn Hạn chót ở trong quá khứ!');
+    }
+    
     try {
       await axiosClient.post('/tasks', { title, customer_id: customerId, deadline: deadline.toISOString() });
       Alert.alert('Thành công', 'Đã thêm công việc!');
@@ -71,6 +80,7 @@ export default function AddTaskScreen({ navigation }: any) {
           value={deadline}
           mode="date"
           display="default"
+          minimumDate={new Date()}
           onChange={onChangeDate}
         />
       )}
