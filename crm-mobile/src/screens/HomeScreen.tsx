@@ -1,33 +1,81 @@
 import React, { useEffect } from 'react';
-import { View, Text, Button, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Platform } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
 import { logout } from '../store/authSlice';
 import { fetchCustomers } from '../store/customerSlice';
 import { fetchTasks } from '../store/taskSlice';
 import { RootState, AppDispatch } from '../store';
+import { useTheme } from '../context/ThemeContext';
+import { AppButton } from '../components/AppButton';
+import { AppCard } from '../components/AppCard';
 import { PieChart } from 'react-native-chart-kit';
 import { Dimensions } from 'react-native';
+import * as Notifications from 'expo-notifications';
+import * as Device from 'expo-device';
+import Constants from 'expo-constants';
+import axiosClient from '../api/axiosClient';
 
 const screenWidth = Dimensions.get('window').width;
 
 export default function HomeScreen({ navigation }: any) {
+  const { theme } = useTheme();
   const dispatch = useDispatch<AppDispatch>();
   const user = useSelector((state: RootState) => state.auth.user);
   const customers = useSelector((state: RootState) => state.customer.list);
   const tasks = useSelector((state: RootState) => state.task.list);
-  // LOGIC TÍNH TOÁN CHO BIỂU ĐỒ TRẠNG THÁI TASK
+
   const pendingCount = tasks.filter((t: any) => t.status === 'Pending').length;
   const inProgressCount = tasks.filter((t: any) => t.status === 'In Progress').length;
   const completedCount = tasks.filter((t: any) => t.status === 'Completed').length;
+
   const chartData = [
-    { name: 'Pending', count: pendingCount, color: '#f39c12', legendFontColor: '#333', legendFontSize: 14 },
-    { name: 'In Progress', count: inProgressCount, color: '#3498db', legendFontColor: '#333', legendFontSize: 14 },
-    { name: 'Completed', count: completedCount, color: '#2ecc71', legendFontColor: '#333', legendFontSize: 14 }
+    { name: 'Pending', count: pendingCount, color: theme.warning, legendFontColor: theme.chartLegendColor, legendFontSize: 13 },
+    { name: 'In Progress', count: inProgressCount, color: theme.primary, legendFontColor: theme.chartLegendColor, legendFontSize: 13 },
+    { name: 'Completed', count: completedCount, color: theme.success, legendFontColor: theme.chartLegendColor, legendFontSize: 13 },
   ];
 
+  async function registerForPushNotificationsAsync() {
+    let token;
+
+    if (Platform.OS === 'android') {
+      await Notifications.setNotificationChannelAsync('default', {
+        name: 'default',
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: '#FF231F7C',
+      });
+    }
+
+    if (Device.isDevice) {
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+      if (finalStatus !== 'granted') {
+        console.log('Từ chối quyền thông báo!');
+        return;
+      }
+
+      try {
+        const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
+        token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
+
+        await axiosClient.put('/profile/push-token', { token });
+        console.log('Đã gửi Push Token lên server:', token);
+      } catch (error) {
+        console.log('Đang chạy trên Expo Go nên tạm thời bị chặn Push Token. Cần build file APK để test tính năng này!');
+      }
+    } else {
+      console.log('Phải dùng điện thoại thật để nhận Push Notification');
+    }
+  }
+
   useEffect(() => {
-    // Mỗi khi vào Dashboard, tải lại số liệu
+    registerForPushNotificationsAsync();
     const unsubscribe = navigation.addListener('focus', () => {
       dispatch(fetchCustomers());
       dispatch(fetchTasks());
@@ -41,58 +89,71 @@ export default function HomeScreen({ navigation }: any) {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Xin chào, {user?.full_name}! 👋</Text>
-        <TouchableOpacity onPress={() => navigation.navigate('Profile')}><Text style={{color: 'blue', fontWeight: 'bold'}}>⚙️ Cài đặt</Text></TouchableOpacity>
-        <TouchableOpacity onPress={handleLogout}><Text style={styles.logoutBtn}>Đăng xuất</Text></TouchableOpacity>
+    <ScrollView style={{ flex: 1, backgroundColor: theme.bg }} contentContainerStyle={{ padding: 20, paddingTop: 52 }}>
+      {/* Header */}
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+        <View>
+          <Text style={{ fontSize: 13, color: theme.textSecondary }}>Chào mừng trở lại 👋</Text>
+          <Text style={{ fontSize: 22, fontWeight: '800', color: theme.textPrimary }}>{user?.full_name}</Text>
+        </View>
+        <View style={{ flexDirection: 'row', gap: 12 }}>
+          <TouchableOpacity onPress={() => navigation.navigate('Profile')}
+            style={{ backgroundColor: theme.primaryLight, padding: 10, borderRadius: 12 }}>
+            <Ionicons name="settings-outline" size={20} color={theme.primary} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleLogout}
+            style={{ backgroundColor: theme.dangerLight, padding: 10, borderRadius: 12 }}>
+            <Ionicons name="log-out-outline" size={20} color={theme.danger} />
+          </TouchableOpacity>
+        </View>
       </View>
 
-      {/* DASHBOARD STATS */}
-      <View style={styles.row}>
-        <View style={[styles.card, { backgroundColor: '#e3f2fd' }]}>
-          <Text style={styles.cardTitle}>Khách Hàng</Text>
-          <Text style={styles.cardNumber}>{customers.length}</Text>
-        </View>
-        <View style={[styles.card, { backgroundColor: '#fff3e0' }]}>
-          <Text style={styles.cardTitle}>Công Việc</Text>
-          <Text style={styles.cardNumber}>{tasks.length}</Text>
-        </View>
+      {/* Stats Row */}
+      <View style={{ flexDirection: 'row', gap: 12, marginBottom: 24 }}>
+        <AppCard style={{ flex: 1, alignItems: 'center', padding: 20, marginBottom: 0 }}>
+          <View style={{ backgroundColor: theme.primaryLight, padding: 10, borderRadius: 12, marginBottom: 10 }}>
+            <Ionicons name="people-outline" size={24} color={theme.primary} />
+          </View>
+          <Text style={{ fontSize: 28, fontWeight: '800', color: theme.textPrimary }}>{customers.length}</Text>
+          <Text style={{ fontSize: 13, color: theme.textSecondary, marginTop: 2 }}>Khách hàng</Text>
+        </AppCard>
+        <AppCard style={{ flex: 1, alignItems: 'center', padding: 20, marginBottom: 0 }}>
+          <View style={{ backgroundColor: theme.warningLight, padding: 10, borderRadius: 12, marginBottom: 10 }}>
+            <Ionicons name="clipboard-outline" size={24} color={theme.warning} />
+          </View>
+          <Text style={{ fontSize: 28, fontWeight: '800', color: theme.textPrimary }}>{tasks.length}</Text>
+          <Text style={{ fontSize: 13, color: theme.textSecondary, marginTop: 2 }}>Công việc</Text>
+        </AppCard>
       </View>
 
-      {/* THÊM BIỂU ĐỒ VÀO ĐÂY */}
-      <Text style={{ fontSize: 18, fontWeight: 'bold', marginTop: 10, marginBottom: 10 }}>Thống kê Công việc</Text>
-      <View style={{ alignItems: 'center', backgroundColor: '#fff', borderRadius: 10, padding: 10, elevation: 2 }}>
+      {/* Pie Chart */}
+      <AppCard style={{ marginBottom: 24 }}>
+        <Text style={{ fontSize: 16, fontWeight: '700', color: theme.textPrimary, marginBottom: 12 }}>Thống kê Công việc</Text>
         <PieChart
           data={chartData}
-          width={screenWidth - 60}
-          height={200}
-          chartConfig={{ color: () => `rgba(0, 0, 0, 1)` }}
-          accessor={"count"}
-          backgroundColor={"transparent"}
-          paddingLeft={"15"}
-          absolute // Hiển thị số lượng thực tế thay vì phần trăm
+          width={screenWidth - 80}
+          height={180}
+          chartConfig={{ color: () => `rgba(0,0,0,1)`, backgroundColor: theme.bgCard }}
+          accessor="count"
+          backgroundColor="transparent"
+          paddingLeft="10"
+          absolute
         />
-      </View>
-    
-      {/* MENU NAVIGATION */}
-      <View style={styles.menu}>
-        <Button title="👥 Danh sách Khách hàng" onPress={() => navigation.navigate('CustomerList')} />
-        <View style={{ height: 15 }} />
-        <Button title="📋 Danh sách Công việc" color="green" onPress={() => navigation.navigate('TaskList')} />
-      </View>
-    </View>
+      </AppCard>
+
+      {/* Navigation Buttons */}
+      <AppButton
+        title="Danh sách Khách hàng"
+        icon="people-outline"
+        onPress={() => navigation.navigate('CustomerList')}
+        style={{ marginBottom: 12 }}
+      />
+      <AppButton
+        title="Danh sách Công việc"
+        icon="clipboard-outline"
+        onPress={() => navigation.navigate('TaskList')}
+        variant="ghost"
+      />
+    </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, backgroundColor: '#f9f9f9' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 30, marginTop: 20 },
-  title: { fontSize: 20, fontWeight: 'bold' },
-  logoutBtn: { color: 'red', fontWeight: 'bold' },
-  row: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 30 },
-  card: { flex: 1, padding: 20, borderRadius: 10, alignItems: 'center', marginHorizontal: 5, elevation: 2 },
-  cardTitle: { fontSize: 16, color: '#555', fontWeight: 'bold' },
-  cardNumber: { fontSize: 30, fontWeight: 'bold', marginTop: 10, color: '#333' },
-  menu: { marginTop: 20 }
-});

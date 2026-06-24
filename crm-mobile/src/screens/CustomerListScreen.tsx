@@ -1,17 +1,25 @@
 import React, { useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, ActivityIndicator, TextInput } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
+import { Ionicons } from '@expo/vector-icons';
 import { fetchCustomers } from '../store/customerSlice';
 import { RootState, AppDispatch } from '../store';
+import { useTheme } from '../context/ThemeContext';
+import { AppInput } from '../components/AppInput';
+import { AppCard } from '../components/AppCard';
 
 export default function CustomerListScreen({ navigation }: any) {
+  const { theme } = useTheme();
   const dispatch = useDispatch<AppDispatch>();
   const { list, loading } = useSelector((state: RootState) => state.customer);
   const [search, setSearch] = React.useState('');
+
   const filteredList = list.filter((item: any) =>
-    item.name.toLowerCase().includes(search.toLowerCase()) || (item.phone && item.phone.includes(search)) || (item.email && item.email.toLowerCase().includes(search.toLowerCase()))
+    item.name.toLowerCase().includes(search.toLowerCase()) ||
+    (item.phone && item.phone.includes(search)) ||
+    (item.email && item.email.toLowerCase().includes(search.toLowerCase()))
   );
-  // Gọi API mỗi khi màn hình này được focus (hiển thị lên)
+
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
       dispatch(fetchCustomers());
@@ -19,50 +27,71 @@ export default function CustomerListScreen({ navigation }: any) {
     return unsubscribe;
   }, [navigation]);
 
-  // Thiết kế giao diện từng dòng khách hàng
   const renderItem = ({ item }: any) => (
-    <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('CustomerDetail', { customerId: item.id })}>
-      <Text style={styles.name}>{item.name}</Text>
-      <Text style={styles.info}>📞 {item.phone || 'Chưa có SĐT'}</Text>
-      <Text style={styles.info}>📧 {item.email || 'Chưa có Email'}</Text>
+    <TouchableOpacity
+      activeOpacity={0.7}
+      onPress={() => navigation.navigate('CustomerDetail', { customerId: item.id })}
+    >
+      <AppCard style={{ marginHorizontal: 16 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <View style={{
+            width: 44, height: 44, borderRadius: 22,
+            backgroundColor: theme.primaryLight, alignItems: 'center', justifyContent: 'center', marginRight: 12
+          }}>
+            <Text style={{ fontSize: 18, fontWeight: '700', color: theme.primary }}>
+              {item.name.charAt(0).toUpperCase()}
+            </Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 16, fontWeight: '700', color: theme.textPrimary }}>{item.name}</Text>
+            <Text style={{ fontSize: 13, color: theme.textSecondary, marginTop: 2 }}>
+              {item.phone || 'Chưa có SĐT'}  ·  {item.email || 'Chưa có Email'}
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={theme.textMuted} />
+        </View>
+      </AppCard>
     </TouchableOpacity>
   );
 
   return (
-    <View style={styles.container}>
-      <TextInput
-        style={styles.searchInput}
-        placeholder="Tìm kiếm theo tên hoặc SĐT ... "
-        value={search}
-        onChangeText={setSearch}
-      />
+    <View style={{ flex: 1, backgroundColor: theme.bg }}>
+      <View style={{ padding: 16, paddingBottom: 0 }}>
+        <AppInput
+          icon="search-outline"
+          placeholder="Tìm theo tên, SĐT, email..."
+          value={search}
+          onChangeText={setSearch}
+        />
+      </View>
       {loading ? (
-        <ActivityIndicator size="large" color="blue" style={{ marginTop: 50 }} />
+        <ActivityIndicator size="large" color={theme.primary} style={{ marginTop: 50 }} />
       ) : (
         <FlatList
           data={filteredList}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
-          ListEmptyComponent={<Text style={styles.empty}>Chưa có khách hàng nào.</Text>}
+          ListEmptyComponent={
+            <Text style={{ textAlign: 'center', marginTop: 50, color: theme.textMuted, fontSize: 14 }}>
+              Chưa có khách hàng nào
+            </Text>
+          }
+          contentContainerStyle={{ paddingTop: 16 }}
         />
       )}
 
-      {/* Nút Dấu + Nổi ở góc dưới */}
-      <TouchableOpacity style={styles.fab} onPress={() => navigation.navigate('AddCustomer')}>
-        <Text style={styles.fabText}>+</Text>
+      {/* FAB Button */}
+      <TouchableOpacity
+        style={{
+          position: 'absolute', right: 20, bottom: 30,
+          width: 56, height: 56, borderRadius: 28,
+          backgroundColor: theme.primary, alignItems: 'center', justifyContent: 'center',
+          elevation: 6, shadowColor: theme.primary, shadowOpacity: 0.4, shadowRadius: 10,
+        }}
+        onPress={() => navigation.navigate('AddCustomer')}
+      >
+        <Ionicons name="add" size={28} color="#fff" />
       </TouchableOpacity>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
-  card: { backgroundColor: '#fff', padding: 15, marginHorizontal: 15, marginTop: 15, borderRadius: 8, elevation: 2 },
-  name: { fontSize: 18, fontWeight: 'bold', color: '#333' },
-  info: { fontSize: 14, color: '#666', marginTop: 5 },
-  empty: { textAlign: 'center', marginTop: 50, color: '#888' },
-  
-  fab: { position: 'absolute', width: 60, height: 60, alignItems: 'center', justifyContent: 'center', right: 20, bottom: 30, backgroundColor: 'blue', borderRadius: 30, elevation: 5 },
-  fabText: { fontSize: 30, color: 'white', marginTop: -3 },
-  searchInput: { backgroundColor: '#fff', padding: 10, margin: 15, borderRadius: 8, borderWidth: 1, borderColor: '#ddd' },
-});

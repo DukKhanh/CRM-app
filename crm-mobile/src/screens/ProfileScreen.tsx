@@ -1,43 +1,45 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, Image, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, Image, TouchableOpacity, Alert, ActivityIndicator, Switch } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
+import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import axiosClient from '../api/axiosClient';
 import { updateUser } from '../store/authSlice';
 import { RootState } from '../store';
+import { useTheme } from '../context/ThemeContext';
+import { AppButton } from '../components/AppButton';
+import { AppInput } from '../components/AppInput';
+import { AppCard } from '../components/AppCard';
+
 export default function ProfileScreen({ navigation }: any) {
+  const { theme, isDark, toggleTheme } = useTheme();
   const dispatch = useDispatch();
   const user = useSelector((state: RootState) => state.auth.user);
-
   const [fullName, setFullName] = useState(user?.full_name || '');
   const [avatar, setAvatar] = useState(user?.avatar || null);
   const [loading, setLoading] = useState(false);
 
-  // Hàm Mở thư viện ảnh
   const pickImage = async () => {
-    // Xin quyền truy cập thư viện ảnh
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (permissionResult.granted === false) {
       Alert.alert('Cấp quyền', 'Bạn cần cấp quyền truy cập ảnh để đổi Avatar!');
       return;
     }
 
-    // Mở thư viện ảnh (kèm nén ảnh giảm dung lượng)
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       allowsEditing: true,
-      aspect: [1, 1], // Cắt ảnh hình vuông
-      quality: 0.3,   // Nén ảnh để không quá nặng
-      base64: true,   // Chuyển ảnh thành chuỗi văn bản để gửi lên server
+      aspect: [1, 1],
+      quality: 0.3,
+      base64: true,
     });
 
     if (!result.canceled && result.assets[0].base64) {
       const base64Image = `data:image/jpeg;base64,${result.assets[0].base64}`;
-      setAvatar(base64Image); // Hiện ảnh mới ra màn hình
+      setAvatar(base64Image);
     }
   };
 
-  // Hàm Lưu lên Server
   const handleSave = async () => {
     if (!fullName) return Alert.alert('Lỗi', 'Tên không được để trống');
     setLoading(true);
@@ -46,8 +48,6 @@ export default function ProfileScreen({ navigation }: any) {
         full_name: fullName,
         avatar: avatar
       });
-      
-      // Lưu vào Redux
       dispatch(updateUser(response.data.user));
       Alert.alert('Thành công', 'Đã cập nhật hồ sơ!');
     } catch (error) {
@@ -58,62 +58,110 @@ export default function ProfileScreen({ navigation }: any) {
   };
 
   return (
-    <View style={styles.container}>
-      {/* KHU VỰC AVATAR */}
-      <View style={styles.avatarContainer}>
-        <TouchableOpacity onPress={pickImage}>
+    <ScrollView style={{ flex: 1, backgroundColor: theme.bg }} contentContainerStyle={{ padding: 20, paddingTop: 40 }}>
+      {/* Avatar */}
+      <View style={{ alignItems: 'center', marginBottom: 32 }}>
+        <TouchableOpacity onPress={pickImage} style={{ position: 'relative' }}>
           {avatar ? (
-            <Image source={{ uri: avatar }} style={styles.avatar} />
+            <Image source={{ uri: avatar }} style={{ width: 110, height: 110, borderRadius: 55 }} />
           ) : (
-            <View style={styles.avatarPlaceholder}>
-              <Text style={styles.avatarText}>Ảnh</Text>
+            <View style={{
+              width: 110, height: 110, borderRadius: 55,
+              backgroundColor: theme.primaryLight, alignItems: 'center', justifyContent: 'center'
+            }}>
+              <Text style={{ fontSize: 42, fontWeight: '800', color: theme.primary }}>
+                {user?.full_name?.charAt(0) || '?'}
+              </Text>
             </View>
           )}
-          <View style={styles.editBadge}>
-            <Text style={{color: 'white', fontSize: 12}}>✏️</Text>
+          <View style={{
+            position: 'absolute', bottom: 2, right: 2,
+            backgroundColor: theme.primary, padding: 7, borderRadius: 20,
+            borderWidth: 2, borderColor: theme.bg
+          }}>
+            <Ionicons name="camera-outline" size={14} color="#fff" />
           </View>
         </TouchableOpacity>
+        <Text style={{ fontSize: 20, fontWeight: '800', color: theme.textPrimary, marginTop: 14 }}>{user?.full_name}</Text>
+        <Text style={{ fontSize: 13, color: theme.textSecondary }}>{user?.email}</Text>
       </View>
 
-      {/* THÔNG TIN CÁ NHÂN */}
-      <Text style={styles.label}>Họ và Tên</Text>
-      <TextInput style={styles.input} value={fullName} onChangeText={setFullName} />
+      {/* Form */}
+      <AppCard>
+        <AppInput
+          label="Họ và Tên"
+          icon="person-outline"
+          value={fullName}
+          onChangeText={setFullName}
+        />
+        <AppInput
+          label="Email"
+          icon="mail-outline"
+          value={user?.email}
+          editable={false}
+          style={{ color: theme.textMuted, backgroundColor: theme.bgDisabled }}
+        />
+        <AppInput
+          label="Vai trò"
+          icon="shield-outline"
+          value={user?.role}
+          editable={false}
+          style={{ color: theme.textMuted, backgroundColor: theme.bgDisabled }}
+        />
+      </AppCard>
 
-      <Text style={styles.label}>Email (Không thể đổi)</Text>
-      <TextInput style={[styles.input, { backgroundColor: '#e0e0e0', color: '#888' }]} value={user?.email} editable={false} />
+      {/* Cài đặt ứng dụng */}
+      <Text style={{
+        fontSize: 13,
+        fontWeight: '700',
+        color: theme.textSecondary,
+        marginTop: 16,
+        marginBottom: 8,
+        textTransform: 'uppercase',
+        letterSpacing: 1
+      }}>
+        Cài đặt ứng dụng
+      </Text>
+      <AppCard style={{ marginBottom: 20 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 4 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <View style={{
+              width: 36,
+              height: 36,
+              borderRadius: 18,
+              backgroundColor: isDark ? theme.primaryLight : '#EEF2FF',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginRight: 12
+            }}>
+              <Ionicons name="moon-outline" size={20} color={theme.primary} />
+            </View>
+            <View>
+              <Text style={{ fontSize: 15, fontWeight: '600', color: theme.textPrimary }}>Giao diện tối</Text>
+              <Text style={{ fontSize: 12, color: theme.textSecondary }}>Chuyển đổi Light/Dark Mode</Text>
+            </View>
+          </View>
+          <Switch
+            value={isDark}
+            onValueChange={toggleTheme}
+            trackColor={{ false: '#D1D5DB', true: theme.primary }}
+            thumbColor={isDark ? '#FFFFFF' : '#FFFFFF'}
+            ios_backgroundColor="#E5E7EB"
+          />
+        </View>
+      </AppCard>
 
-      <Text style={styles.label}>Vai trò</Text>
-      <TextInput style={[styles.input, { backgroundColor: '#e0e0e0', color: '#888' }]} value={user?.role} editable={false} />
-      
-      <TouchableOpacity
-        style={styles.changePasswordButton}
+      <AppButton
+        title="ĐỔI MẬT KHẨU"
+        variant="ghost"
         onPress={() => navigation.navigate('ChangePassword')}
-      >
-       <Text style={styles.changePasswordText}>
-        ĐỔI MẬT KHẨU
-        </Text>
-</TouchableOpacity>
-
-      <View style={{ marginTop: 20 }}>
-        {loading ? (
-          <ActivityIndicator size="large" color="blue" />
-        ) : (
-          <Button title="LƯU THAY ĐỔI" onPress={handleSave} />
-        )}
-      </View>
-    </View>
+        style={{ marginBottom: 12 }}
+      />
+      <AppButton
+        title={loading ? '' : "LƯU THAY ĐỔI"}
+        onPress={handleSave}
+        loading={loading}
+      />
+    </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, backgroundColor: '#fff' },
-  avatarContainer: { alignItems: 'center', marginVertical: 20 },
-  avatar: { width: 120, height: 120, borderRadius: 60, borderWidth: 2, borderColor: 'blue' },
-  avatarPlaceholder: { width: 120, height: 120, borderRadius: 60, backgroundColor: '#ccc', justifyContent: 'center', alignItems: 'center' },
-  avatarText: { fontSize: 20, color: '#fff' },
-  editBadge: { position: 'absolute', bottom: 0, right: 0, backgroundColor: 'blue', padding: 8, borderRadius: 20 },
-  label: { fontWeight: 'bold', marginBottom: 5, marginTop: 15 },
-  input: { borderWidth: 1, borderColor: '#ccc', padding: 12, borderRadius: 5, fontSize: 16 },
-  changePasswordButton: { backgroundColor: '#ff9800', padding: 12, borderRadius: 5, marginTop: 20, alignItems: 'center' },
-  changePasswordText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-});

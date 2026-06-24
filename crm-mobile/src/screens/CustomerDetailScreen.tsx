@@ -1,19 +1,25 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, FlatList, Alert, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, FlatList, Alert, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import axiosClient from '../api/axiosClient';
 import { useDispatch } from 'react-redux';
 import { fetchCustomers } from '../store/customerSlice';
+import { useTheme } from '../context/ThemeContext';
+import { AppButton } from '../components/AppButton';
+import { AppInput } from '../components/AppInput';
+import { AppCard } from '../components/AppCard';
 
 export default function CustomerDetailScreen({ route, navigation }: any) {
-  // Lấy ID khách hàng được truyền từ màn hình Danh sách sang
+  const { theme } = useTheme();
   const { customerId } = route.params;
 
   const [customer, setCustomer] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [newNote, setNewNote] = useState('');
-  
+  const [addingNote, setAddingNote] = useState(false);
+
   const dispatch = useDispatch<any>();
-  // Hàm tải dữ liệu khách hàng
+
   const fetchCustomerDetail = async () => {
     try {
       const response = await axiosClient.get(`/customers/${customerId}`);
@@ -29,98 +35,126 @@ export default function CustomerDetailScreen({ route, navigation }: any) {
     fetchCustomerDetail();
   }, [customerId]);
 
-  // Hàm thêm ghi chú
   const handleAddNote = async () => {
-    if (!newNote) return;
+    if (!newNote.trim()) return;
+    setAddingNote(true);
     try {
       await axiosClient.post('/notes', { customer_id: customerId, content: newNote });
-      setNewNote(''); // Xóa trắng ô nhập
-      fetchCustomerDetail(); // Tải lại danh sách để hiện ghi chú mới
+      setNewNote('');
+      fetchCustomerDetail();
     } catch (error) {
       Alert.alert('Lỗi', 'Không thể thêm ghi chú');
+    } finally {
+      setAddingNote(false);
     }
   };
 
-  // Hàm Xóa Khách Hàng
   const handleDelete = () => {
     Alert.alert('Xác nhận', 'Bạn có chắc chắn muốn xóa khách hàng này?', [
       { text: 'Hủy', style: 'cancel' },
-      { text: 'Xóa', style: 'destructive', onPress: async () => {
+      {
+        text: 'Xóa',
+        style: 'destructive',
+        onPress: async () => {
           try {
             await axiosClient.delete(`/customers/${customerId}`);
             Alert.alert('Thành công', 'Đã xóa!');
-            dispatch(fetchCustomers()); // Cập nhật lại danh sách ngoài kia
-            navigation.goBack(); // Quay về trang trước
+            dispatch(fetchCustomers());
+            navigation.goBack();
           } catch (error) {
             Alert.alert('Lỗi', 'Không thể xóa');
           }
-      }}
+        }
+      }
     ]);
   };
 
-  if (loading) return <ActivityIndicator size="large" color="blue" style={{ marginTop: 50 }} />;
-  if (!customer) return <Text style={styles.empty}>Không tìm thấy dữ liệu</Text>;
+  if (loading) return <ActivityIndicator size="large" color={theme.primary} style={{ marginTop: 50 }} />;
+  if (!customer) return <Text style={{ textAlign: 'center', marginTop: 50, color: theme.textMuted }}>Không tìm thấy dữ liệu</Text>;
 
   return (
-    <View style={styles.container}>
-      {/* THÔNG TIN CHUNG */}
-      <View style={styles.infoCard}>
-        <Text style={styles.name}>{customer.name}</Text>
-        <Text>📞 {customer.phone || 'Chưa có SĐT'}</Text>
-        <Text>📧 {customer.email || 'Chưa có Email'}</Text>
-        <Text>Trạng thái: <Text style={{fontWeight: 'bold', color: 'blue'}}>{customer.status}</Text></Text>
-        <View style={styles.actionButtons}>
-        <TouchableOpacity onPress={() => navigation.navigate('EditCustomer', { customer })} style={styles.editBtn}>
-            <Text style={{color: 'white'}}>Sửa</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={handleDelete} style={styles.deleteBtn}>
-            <Text style={{color: 'white'}}> Xóa</Text>
-          </TouchableOpacity>
+    <ScrollView style={{ flex: 1, backgroundColor: theme.bg }} contentContainerStyle={{ padding: 20 }}>
+      {/* Info Card */}
+      <AppCard>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14 }}>
+          <View style={{
+            width: 56, height: 56, borderRadius: 28,
+            backgroundColor: theme.primaryLight, alignItems: 'center', justifyContent: 'center', marginRight: 14
+          }}>
+            <Text style={{ fontSize: 24, fontWeight: '800', color: theme.primary }}>
+              {customer.name.charAt(0).toUpperCase()}
+            </Text>
+          </View>
+          <View>
+            <Text style={{ fontSize: 20, fontWeight: '800', color: theme.textPrimary }}>{customer.name}</Text>
+            <View style={{
+              marginTop: 4, paddingHorizontal: 10, paddingVertical: 3, borderRadius: 20,
+              backgroundColor: theme.primaryLight, alignSelf: 'flex-start'
+            }}>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: theme.primary }}>{customer.status}</Text>
+            </View>
+          </View>
         </View>
-      </View>
 
-      <Text style={styles.sectionTitle}>Lịch sử Ghi chú</Text>
-      
-      {/* KHU VỰC NHẬP GHI CHÚ MỚI */}
-      <View style={styles.addNoteContainer}>
-        <TextInput 
-          style={styles.noteInput} 
-          placeholder="Nhập nội dung chăm sóc..." 
-          value={newNote} 
-          onChangeText={setNewNote} 
+        <View style={{ gap: 8 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Ionicons name="call-outline" size={16} color={theme.textSecondary} />
+            <Text style={{ color: theme.textSecondary }}>{customer.phone || 'Chưa có SĐT'}</Text>
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Ionicons name="mail-outline" size={16} color={theme.textSecondary} />
+            <Text style={{ color: theme.textSecondary }}>{customer.email || 'Chưa có Email'}</Text>
+          </View>
+        </View>
+
+        <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
+          <AppButton title="Sửa" icon="create-outline" variant="warning" style={{ flex: 1 }}
+            onPress={() => navigation.navigate('EditCustomer', { customer })}
+          />
+          <AppButton title="Xóa" icon="trash-outline" variant="danger" style={{ flex: 1 }}
+            onPress={handleDelete}
+          />
+        </View>
+      </AppCard>
+
+      {/* Notes Section */}
+      <Text style={{ fontSize: 16, fontWeight: '700', color: theme.textPrimary, marginBottom: 12, marginTop: 24 }}>
+        Lịch sử Ghi chú
+      </Text>
+
+      <View style={{ marginBottom: 16 }}>
+        <AppInput
+          placeholder="Nhập nội dung chăm sóc..."
+          value={newNote}
+          onChangeText={setNewNote}
+          style={{ marginBottom: 10 }}
         />
-        <Button title="Gửi" onPress={handleAddNote} />
+
+        <AppButton
+          title="Gửi"
+          onPress={handleAddNote}
+          loading={addingNote}
+        />
       </View>
 
-      {/* DANH SÁCH GHI CHÚ */}
       <FlatList
-        data={customer.notes}
+        scrollEnabled={false}
+        data={customer.notes || []}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <View style={styles.noteCard}>
-            <Text>{item.content}</Text>
-            <Text style={styles.time}>{new Date(item.createdAt).toLocaleDateString()}</Text>
-          </View>
+          <AppCard style={{ borderLeftWidth: 3, borderLeftColor: theme.primary, marginBottom: 8, padding: 12 }}>
+            <Text style={{ color: theme.textPrimary }}>{item.content}</Text>
+            <Text style={{ fontSize: 11, color: theme.textMuted, marginTop: 6, textAlign: 'right' }}>
+              {new Date(item.createdAt).toLocaleDateString('vi-VN')}
+            </Text>
+          </AppCard>
         )}
-        ListEmptyComponent={<Text style={styles.empty}>Chưa có ghi chú nào.</Text>}
+        ListEmptyComponent={
+          <Text style={{ textAlign: 'center', marginTop: 20, color: theme.textMuted }}>
+            Chưa có ghi chú nào
+          </Text>
+        }
       />
-
-      
-    </View>
+    </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, padding: 15, backgroundColor: '#f5f5f5' },
-  infoCard: { backgroundColor: '#fff', padding: 15, borderRadius: 8, elevation: 2, marginBottom: 20 },
-  name: { fontSize: 20, fontWeight: 'bold', marginBottom: 10 },
-  sectionTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 10 },
-  addNoteContainer: { flexDirection: 'row', marginBottom: 15 },
-  noteInput: { flex: 1, borderWidth: 1, borderColor: '#ccc', borderRadius: 5, padding: 10, marginRight: 10, backgroundColor: '#fff' },
-  noteCard: { backgroundColor: '#fff', padding: 12, borderRadius: 5, marginBottom: 10, borderLeftWidth: 4, borderLeftColor: 'blue' },
-  time: { fontSize: 11, color: '#888', marginTop: 5, textAlign: 'right' },
-  empty: { textAlign: 'center', marginTop: 20, color: '#888' },
-  actionButtons: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 10, gap: 10 },
-  editBtn: { backgroundColor: '#f39c12', padding: 8, borderRadius: 5 },
-  deleteBtn: { backgroundColor: '#e74c3c', padding: 8, borderRadius: 5 },
-});
