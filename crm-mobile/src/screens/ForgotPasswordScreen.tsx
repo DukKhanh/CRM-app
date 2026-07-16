@@ -28,7 +28,8 @@ export default function ForgotPasswordScreen({ navigation }: any) {
       setStep(2);
       setErrors({});
     } catch (error: any) {
-      Alert.alert('Lỗi', error.response?.data?.message);
+      const errorMsg = error.response?.data?.message || error.message || 'Có lỗi xảy ra, vui lòng thử lại';
+      Alert.alert('Lỗi', errorMsg);
     } finally {
       setLoading(false);
     }
@@ -48,7 +49,8 @@ export default function ForgotPasswordScreen({ navigation }: any) {
       Alert.alert('Thành công', 'Đổi mật khẩu thành công! Vui lòng đăng nhập lại.');
       navigation.navigate('Login');
     } catch (error: any) {
-      Alert.alert('Lỗi', error.response?.data?.message);
+      const errorMsg = error.response?.data?.message || error.message || 'Có lỗi xảy ra, vui lòng thử lại';
+      Alert.alert('Lỗi', errorMsg);
     } finally {
       setLoading(false);
     }

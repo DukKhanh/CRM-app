@@ -109,11 +109,16 @@ export const forgotPassword = async (req: Request, res: Response): Promise<void>
 
     // Cấu hình Email gửi đi
     const transporter = nodemailer.createTransport({
-      service: 'gmail',
+      host: 'smtp.gmail.com',
+      port: 465,
+      secure: true,
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
-      }
+      },
+      connectionTimeout: 10000, // 10 giây timeout kết nối
+      greetingTimeout: 10000,
+      socketTimeout: 10000,
     });
 
     await transporter.sendMail({
@@ -124,7 +129,10 @@ export const forgotPassword = async (req: Request, res: Response): Promise<void>
     });
 
     res.status(200).json({ message: 'Đã gửi mã OTP vào email của bạn' });
-  } catch (error) { res.status(500).json({ message: 'Lỗi khi gửi email' }); }
+  } catch (error) { 
+    console.error('Lỗi khi gửi email:', error);
+    res.status(500).json({ message: 'Lỗi khi gửi email', error: String(error) }); 
+  }
 };
 
 // 2. API Đặt lại mật khẩu bằng OTP
