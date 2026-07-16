@@ -107,17 +107,17 @@ export const forgotPassword = async (req: Request, res: Response): Promise<void>
       data: { resetOtp: otp, otpExpiry }
     });
 
-    // Cấu hình Email gửi đi (BẠN CẦN THAY THÔNG TIN CỦA BẠN VÀO ĐÂY)
+    // Cấu hình Email gửi đi
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
-        user: 'email-cua-ban@gmail.com', // Thay bằng Gmail của bạn
-        pass: 'mat-khau-ung-dung-gmail'  // Lấy "App Password" trong cài đặt bảo mật Google
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
       }
     });
 
     await transporter.sendMail({
-      from: '"CRM Connect" <email-cua-ban@gmail.com>',
+      from: `"CRM Connect" <${process.env.EMAIL_USER}>`,
       to: email,
       subject: 'Mã khôi phục mật khẩu CRM',
       text: `Mã OTP của bạn là: ${otp}. Mã này có hiệu lực trong 15 phút.`
