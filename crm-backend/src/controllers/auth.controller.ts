@@ -1,159 +1,122 @@
-import type { Request, Response } from 'express';
+import type { NextFunction, Request, Response } from 'express';
 import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
-import prisma from '../config/prisma';
+import crypto from 'crypto';
 import nodemailer from 'nodemailer';
+import prisma from '../config/prisma';
+import { AppError } from '../errors/AppError';
+import type { AuthRequest } from '../middlewares/auth.middleware';
+import { createSession, revokeAllUserSessions, revokeToken, rotateSession } from '../services/session.service';
+import { recordSecurityEvent } from '../services/securityAudit.service';
+import { getRequestMetadata } from '../utils/requestMetadata';
 
-export const register = async (req: Request, res: Response): Promise<void> => {
+export const register = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { full_name, email, password, role } = req.body;
-
-    // Kiểm tra email tồn tại
-    const existingUser = await prisma.user.findUnique({ where: { email } });
-    if (existingUser) {
-      res.status(400).json({ message: 'Email đã tồn tại' });
-      return;
-    }
-
-    // Mã hóa mật khẩu
-    const salt = await bcrypt.genSalt(10);
-    const password_hash = await bcrypt.hash(password, salt);
-
-    // Tạo user mới
-    const newUser = await prisma.user.create({
-      data: {
-        full_name,
-        email,
-        password_hash,
-        role: role || 'Employee',
-      },
+    const existing = await prisma.user.findUnique({ where: { email: req.body.email } });
+    if (existing) throw new AppError(409, 'Email đã tồn tại');
+    const password_hash = await bcrypt.hash(req.body.password, 12);
+    const user = await prisma.user.create({
+      data: { full_name: req.body.full_name, email: req.body.email, password_hash, role: 'EMPLOYEE' },
+      select: { id: true, full_name: true, email: true, role: true, avatar: true },
     });
-
-    res.status(201).json({ message: 'Đăng ký thành công', userId: newUser.id });
-  } catch (error) {
-    res.status(500).json({ message: 'Lỗi server', error });
-  }
+    res.status(201).json({ message: 'Đăng ký thành công', user });
+  } catch (error) { next(error); }
 };
 
-export const login = async (req: Request, res: Response): Promise<void> => {
+export const login = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  const metadata = getRequestMetadata(req);
   try {
-    const { email, password } = req.body;
-
-    // Tìm user
-    const user = await prisma.user.findUnique({ where: { email } });
-    if (!user) {
-      res.status(404).json({ message: 'Không tìm thấy người dùng' });
-      return;
+    const user = await prisma.user.findUnique({ where: { email: req.body.email } });
+    if (!user || !(await bcrypt.compare(req.body.password, user.password_hash))) {
+      await recordSecurityEvent({ userId: user?.id, type: 'LOGIN_FAILURE', ...metadata, metadata: { email: req.body.email } });
+      throw new AppError(401, 'Email hoặc mật khẩu không đúng');
     }
-
-    // Kiểm tra mật khẩu
-    const isMatch = await bcrypt.compare(password, user.password_hash);
-    if (!isMatch) {
-      res.status(400).json({ message: 'Mật khẩu không đúng' });
-      return;
-    }
-
-    // Tạo JWT Token
-    const payload = { userId: user.id, role: user.role };
-    // 1. TẠO 2 LOẠI TOKEN
-    const token = jwt.sign(payload, process.env.JWT_SECRET as string, { expiresIn: '15m' }); // 15 phút
-    const refreshToken = jwt.sign(payload, process.env.JWT_SECRET as string, { expiresIn: '7d' }); // 7 ngày
-
+    const tokens = await createSession(user, metadata);
     res.status(200).json({
-      message: 'Đăng nhập thành công',
-      token,
-      refreshToken,
-      user: { id: user.id, full_name: user.full_name, email: user.email, role: user.role, avatar: user.avatar }
+      message: 'Đăng nhập thành công', ...tokens,
+      user: { id: user.id, full_name: user.full_name, email: user.email, role: user.role, avatar: user.avatar },
     });
-  } catch (error) {
-    res.status(500).json({ message: 'Lỗi server', error });
-  }
+  } catch (error) { next(error); }
 };
 
-export const refreshTokenAPI = async (req: Request, res: Response): Promise<void> => {
+export const refreshTokenAPI = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { refreshToken } = req.body;
-    if (!refreshToken) {
-      res.status(401).json({ message: 'Thiếu Refresh Token' });
-      return;
-    }
-
-    // Kiểm tra xem Refresh Token có còn hạn không
-    const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET as string) as any;
-
-    // Nếu còn hạn, tạo Access Token mới (15 phút)
-    const payload = { userId: decoded.userId, role: decoded.role };
-    const newToken = jwt.sign(payload, process.env.JWT_SECRET as string, { expiresIn: '15m' });
-
-    res.status(200).json({ token: newToken });
-  } catch (error) {
-    res.status(403).json({ message: 'Refresh token đã hết hạn, vui lòng đăng nhập lại' });
-  }
+    res.status(200).json(await rotateSession(req.body.refreshToken, getRequestMetadata(req)));
+  } catch (error) { next(error); }
 };
 
-// 1. API Gửi OTP
-export const forgotPassword = async (req: Request, res: Response): Promise<void> => {
-  const { email } = req.body;
+export const logout = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const user = await prisma.user.findUnique({ where: { email } });
-    if (!user) { res.status(404).json({ message: 'Email không tồn tại' }); return; }
+    await revokeToken(req.body.refreshToken, getRequestMetadata(req));
+    res.status(200).json({ message: 'Đăng xuất thành công' });
+  } catch (error) { next(error); }
+};
 
-    // Tạo OTP 6 số ngẫu nhiên & thời hạn 15 phút
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const otpExpiry = new Date(Date.now() + 15 * 60 * 1000);
+export const listSessions = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const userId = (req as AuthRequest).user.userId;
+    const sessions = await prisma.refreshSession.findMany({
+      where: { userId, revokedAt: null, expiresAt: { gt: new Date() } },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true, familyId: true, deviceId: true, deviceName: true, userAgent: true, ipAddress: true, lastUsedAt: true, createdAt: true, expiresAt: true },
+    });
+    res.json({ sessions });
+  } catch (error) { next(error); }
+};
 
+export const revokeSession = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const userId = (req as AuthRequest).user.userId;
+    const result = await prisma.refreshSession.updateMany({
+      where: { id: req.params.sessionId, userId, revokedAt: null },
+      data: { revokedAt: new Date(), revokeReason: 'USER_REVOKED' },
+    });
+    if (!result.count) throw new AppError(404, 'Không tìm thấy phiên đăng nhập');
+    await recordSecurityEvent({ userId, type: 'SESSION_REVOKED', sessionId: req.params.sessionId, ...getRequestMetadata(req) });
+    res.json({ message: 'Đã thu hồi phiên đăng nhập' });
+  } catch (error) { next(error); }
+};
+
+export const revokeAllSessions = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const userId = (req as AuthRequest).user.userId;
+    await revokeAllUserSessions(userId, 'USER_REVOKED_ALL');
+    await recordSecurityEvent({ userId, type: 'SESSION_REVOKED', ...getRequestMetadata(req), metadata: { scope: 'all' } });
+    res.json({ message: 'Đã thu hồi tất cả phiên đăng nhập' });
+  } catch (error) { next(error); }
+};
+
+export const forgotPassword = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const user = await prisma.user.findUnique({ where: { email: req.body.email } });
+    if (!user) { res.status(200).json({ message: 'Nếu email tồn tại, mã OTP sẽ được gửi' }); return; }
+    if (user.otpLastSentAt && Date.now() - user.otpLastSentAt.getTime() < 60_000) throw new AppError(429, 'Vui lòng chờ 60 giây trước khi gửi lại OTP');
+    const otp = crypto.randomInt(100000, 1000000).toString();
     await prisma.user.update({
-      where: { email },
-      data: { resetOtp: otp, otpExpiry }
+      where: { id: user.id },
+      data: { resetOtpHash: await bcrypt.hash(otp, 10), otpExpiry: new Date(Date.now() + 15 * 60_000), otpAttempts: 0, otpLastSentAt: new Date() },
     });
-
-    // Cấu hình Email gửi đi
-    const transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 465,
-      secure: true,
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-      },
-      connectionTimeout: 10000, // 10 giây timeout kết nối
-      greetingTimeout: 10000,
-      socketTimeout: 10000,
-    });
-
-    await transporter.sendMail({
-      from: `"CRM Connect" <${process.env.EMAIL_USER}>`,
-      to: email,
-      subject: 'Mã khôi phục mật khẩu CRM',
-      text: `Mã OTP của bạn là: ${otp}. Mã này có hiệu lực trong 15 phút.`
-    });
-
-    res.status(200).json({ message: 'Đã gửi mã OTP vào email của bạn' });
-  } catch (error) { 
-    console.error('Lỗi khi gửi email:', error);
-    res.status(500).json({ message: 'Lỗi khi gửi email', error: String(error) }); 
-  }
+    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) throw new AppError(503, 'Dịch vụ email chưa được cấu hình');
+    const transporter = nodemailer.createTransport({ host: 'smtp.gmail.com', port: 465, secure: true, auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS } });
+    await transporter.sendMail({ from: `"CRM Connect" <${process.env.EMAIL_USER}>`, to: req.body.email, subject: 'Mã khôi phục mật khẩu CRM', text: `Mã OTP của bạn là: ${otp}. Mã có hiệu lực trong 15 phút.` });
+    res.status(200).json({ message: 'Nếu email tồn tại, mã OTP sẽ được gửi' });
+  } catch (error) { next(error); }
 };
 
-// 2. API Đặt lại mật khẩu bằng OTP
-export const resetPassword = async (req: Request, res: Response): Promise<void> => {
-  const { email, otp, newPassword } = req.body;
+export const resetPassword = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const user = await prisma.user.findUnique({ where: { email } });
-    if (!user || user.resetOtp !== otp || !user.otpExpiry || user.otpExpiry < new Date()) {
-      res.status(400).json({ message: 'Mã OTP không hợp lệ hoặc đã hết hạn' }); return;
+    const user = await prisma.user.findUnique({ where: { email: req.body.email } });
+    if (!user || !user.resetOtpHash || !user.otpExpiry || user.otpExpiry <= new Date() || user.otpAttempts >= 5) throw new AppError(400, 'Mã OTP không hợp lệ hoặc đã hết hạn');
+    const valid = await bcrypt.compare(req.body.otp, user.resetOtpHash);
+    if (!valid) {
+      await prisma.user.update({ where: { id: user.id }, data: { otpAttempts: { increment: 1 } } });
+      throw new AppError(400, 'Mã OTP không hợp lệ hoặc đã hết hạn');
     }
-
-    const salt = await bcrypt.genSalt(10);
-    const password_hash = await bcrypt.hash(newPassword, salt);
-
-    // Cập nhật pass mới và xóa OTP đi
-    await prisma.user.update({
-      where: { email },
-      data: { password_hash, resetOtp: null, otpExpiry: null }
-    });
-
-    res.status(200).json({ message: 'Đổi mật khẩu thành công!' });
-  } catch (error) { res.status(500).json({ message: 'Lỗi server' }); }
+    const password_hash = await bcrypt.hash(req.body.newPassword, 12);
+    await prisma.$transaction([
+      prisma.user.update({ where: { id: user.id }, data: { password_hash, resetOtpHash: null, otpExpiry: null, otpAttempts: 0 } }),
+      prisma.refreshSession.updateMany({ where: { userId: user.id, revokedAt: null }, data: { revokedAt: new Date(), revokeReason: 'PASSWORD_RESET' } }),
+    ]);
+    await recordSecurityEvent({ userId: user.id, type: 'PASSWORD_RESET', ...getRequestMetadata(req) });
+    res.status(200).json({ message: 'Đổi mật khẩu thành công' });
+  } catch (error) { next(error); }
 };
-

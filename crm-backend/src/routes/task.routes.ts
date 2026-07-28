@@ -1,17 +1,15 @@
 import { Router } from 'express';
-import { getTasks, createTask, updateTaskStatus, updateTask, deleteTask } from '../controllers/task.controller';
+import { createTask, deleteTask, getTasks, updateTask, updateTaskStatus } from '../controllers/task.controller';
 import { verifyToken } from '../middlewares/auth.middleware';
-
+import { validate } from '../middlewares/validate.middleware';
+import { createTaskSchema, taskIdSchema, updateTaskSchema, updateTaskStatusSchema } from '../schemas/task.schema';
 const router = Router();
-// Bảo vệ API bằng token
 router.use(verifyToken);
-
 router.get('/', getTasks);
-router.post('/', createTask);
-router.put('/:id', updateTaskStatus);
-router.put('/:id', updateTaskStatus); // API cập nhật trạng thái cũ
-router.put('/:id/edit', updateTask);  // Thêm: API Sửa thông tin
-router.delete('/:id', deleteTask);    // Thêm: API Xóa
-// router.delete('/:id', (req, res) => { res.send('Delete task') });
-
+router.post('/', validate(createTaskSchema), createTask);
+router.put('/:id', validate(updateTaskStatusSchema), updateTaskStatus);
+router.patch('/:id/status', validate(updateTaskStatusSchema), updateTaskStatus);
+router.put('/:id/edit', validate(updateTaskSchema), updateTask);
+router.patch('/:id', validate(updateTaskSchema), updateTask);
+router.delete('/:id', validate(taskIdSchema), deleteTask);
 export default router;

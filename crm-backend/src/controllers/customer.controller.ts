@@ -1,76 +1,60 @@
-import type { Response } from 'express';
+import type { Response, NextFunction } from 'express';
 import prisma from '../config/prisma';
 import type { AuthRequest } from '../middlewares/auth.middleware';
+import { AppError } from '../errors/AppError';
 
-// 1. Lấy danh sách khách hàng
-export const getCustomers = async (req: AuthRequest, res: Response) => {
+const customerWhere = (req: AuthRequest, id?: string) => ({
+  ...(id ? { id } : {}),
+  ...(req.user.role === 'ADMIN' ? {} : { ownerId: req.user.userId }),
+});
+
+export const getCustomers = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const customers = await prisma.customer.findMany({
-      orderBy: { createdAt: 'desc' }
+      where: customerWhere(req),
+      orderBy: { createdAt: 'desc' },
     });
     res.status(200).json(customers);
-  } catch (error) {
-    res.status(500).json({ message: 'Lỗi server', error });
-  }
+  } catch (error) { next(error); }
 };
 
-// 2. Lấy chi tiết 1 khách hàng
-export const getCustomerById = async (req: AuthRequest, res: Response): Promise<void> => {
+export const getCustomerById = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const  id  = req.params.id as string;
-    const customer = await prisma.customer.findUnique({
-      where: { id },
-      include: { tasks: true, notes: true } // Kéo theo cả tasks và notes của KH này
+    const customer = await prisma.customer.findFirst({
+      where: customerWhere(req, req.params.id),
+      include: {
+        tasks: { orderBy: { createdAt: 'desc' } },
+        notes: { orderBy: { createdAt: 'desc' }, include: { author: { select: { id: true, full_name: true } } } },
+      },
     });
-
-    if (!customer) {
-      res.status(404).json({ message: 'Không tìm thấy khách hàng' });
-      return;
-    }
+    if (!customer) throw new AppError(404, 'Không tìm thấy khách hàng');
     res.status(200).json(customer);
-  } catch (error) {
-    res.status(500).json({ message: 'Lỗi server', error });
-  }
+  } catch (error) { next(error); }
 };
 
-// 3. Tạo khách hàng mới
-export const createCustomer = async (req: AuthRequest, res: Response) => {
+export const createCustomer = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { name, phone, email, company, address, status } = req.body;
-    const newCustomer = await prisma.customer.create({
-      data: { name, phone, email, company, address, status }
+    const customer = await prisma.customer.create({
+      data: { ...req.body, email: req.body.email || null, ownerId: req.user.userId },
     });
-    res.status(201).json(newCustomer);
-  } catch (error) {
-    res.status(500).json({ message: 'Lỗi server', error });
-  }
+    res.status(201).json(customer);
+  } catch (error) { next(error); }
 };
 
-// 4. Cập nhật khách hàng
-export const updateCustomer = async (req: AuthRequest, res: Response) => {
+export const updateCustomer = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const  id  = req.params.id as string;
-    const data = req.body;
-
-    const updatedCustomer = await prisma.customer.update({
-      where: { id },
-      data
-    });
-    res.status(200).json(updatedCustomer);
-  } catch (error) {
-    res.status(500).json({ message: 'Lỗi khi cập nhật', error });
-  }
+    const existing = await prisma.customer.findFirst({ where: customerWhere(req, req.params.id), select: { id: true } });
+    if (!existing) throw new AppError(404, 'Không tìm thấy khách hàng');
+    const customer = await prisma.customer.update({ where: { id: existing.id }, data: req.body });
+    res.status(200).json(customer);
+  } catch (error) { next(error); }
 };
 
-// 5. Xóa khách hàng
-export const deleteCustomer = async (req: AuthRequest, res: Response) => {
+export const deleteCustomer = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const  id  = req.params.id as string;
-    await prisma.customer.delete({
-      where: { id }
-    });
+    const existing = await prisma.customer.findFirst({ where: customerWhere(req, req.params.id), select: { id: true } });
+    if (!existing) throw new AppError(404, 'Không tìm thấy khách hàng');
+    await prisma.customer.delete({ where: { id: existing.id } });
     res.status(200).json({ message: 'Đã xóa khách hàng thành công' });
-  } catch (error) {
-    res.status(500).json({ message: 'Lỗi khi xóa', error });
-  }
+  } catch (error) { next(error); }
 };

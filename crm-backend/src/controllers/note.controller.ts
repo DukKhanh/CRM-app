@@ -1,22 +1,19 @@
-import type { Response } from 'express';
+import type { NextFunction, Response } from 'express';
 import prisma from '../config/prisma';
 import type { AuthRequest } from '../middlewares/auth.middleware';
+import { AppError } from '../errors/AppError';
 
-export const createNote = async (req: AuthRequest, res: Response): Promise<void> => {
+export const createNote = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { customer_id, content } = req.body;
-    
-    if (!content) {
-      res.status(400).json({ message: 'Nội dung không được để trống' });
-      return;
-    }
-
-    const newNote = await prisma.note.create({
-      data: { customer_id, content }
+    const customer = await prisma.customer.findFirst({
+      where: { id: req.body.customer_id, ...(req.user.role === 'ADMIN' ? {} : { ownerId: req.user.userId }) },
+      select: { id: true },
     });
-
-    res.status(201).json(newNote);
-  } catch (error) {
-    res.status(500).json({ message: 'Lỗi khi tạo ghi chú', error });
-  }
+    if (!customer) throw new AppError(404, 'Không tìm thấy khách hàng');
+    const note = await prisma.note.create({
+      data: { customer_id: req.body.customer_id, content: req.body.content, authorId: req.user.userId },
+      include: { author: { select: { id: true, full_name: true } } },
+    });
+    res.status(201).json(note);
+  } catch (error) { next(error); }
 };
