@@ -30,8 +30,6 @@
     "jsonwebtoken": "^9.0.3",
     "nodemailer": "^9.0.1",
     "prisma": "^6.19.3",
-    "react-native-chart-kit": "^6.12.3",
-    "redux-persist": "^6.0.0",
     "zod": "^4.1.12"
   },
   "devDependencies": {
