@@ -5,11 +5,11 @@ on:
     branches:
       - main
     paths:
-      - "crm-mobile/**" 
+      - "crm-mobile/**"
       - ".github/workflows/build-apk.yml"
 
 concurrency:
-  group: frontend-build-${{ github.ref }}
+  group: build-apk-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
-   
+    
     defaults:
       run:
         working-directory: crm-mobile
@@ -30,15 +30,15 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22 # Nâng lên Node 22 để hết cảnh báo Deprecated
           cache: npm
-          cache-dependency-path: crm-frontend/package-lock.json
+          cache-dependency-path: crm-mobile/package-lock.json
 
       - name: Setup EAS CLI
         uses: expo/expo-github-action@v8
         with:
           eas-version: latest
-          token: ${{ secrets.EXPO_TOKEN }} 
+          token: ${{ secrets.EXPO_TOKEN }} # Token xác thực Expo
 
       - name: Install dependencies
         run: npm ci
