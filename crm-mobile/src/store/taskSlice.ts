@@ -12,6 +12,12 @@ export interface Task {
   customer?: {
     name: string;
   };
+  capabilities?: {
+    update: boolean;
+    updateStatus: boolean;
+    delete: boolean;
+    assign: boolean;
+  };
 }
 
 interface TaskState {

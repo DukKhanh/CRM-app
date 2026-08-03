@@ -15,22 +15,33 @@ export default function AddTaskScreen({ navigation }: any) {
   const { theme } = useTheme();
   const dispatch = useDispatch<AppDispatch>();
   const customers = useSelector((state: RootState) => state.customer.list);
+  const currentUser = useSelector((state: RootState) => state.auth.user);
+  const canAssignAny = currentUser?.permissions.includes('task:assign:any') ?? false;
 
   const [title, setTitle] = useState('');
   const [customerId, setCustomerId] = useState('');
   const [customerName, setCustomerName] = useState('');
   const [deadline, setDeadline] = useState(new Date());
+  const [assignees, setAssignees] = useState<Array<{ id: string; full_name: string; role: string }>>([]);
+  const [assigneeId, setAssigneeId] = useState(currentUser?.id ?? '');
+  const [assigneeName, setAssigneeName] = useState(currentUser?.full_name ?? 'Tôi');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{ title?: string; customerId?: string }>({});
 
   // Modal states
   const [customerModalVisible, setCustomerModalVisible] = useState(false);
+  const [assigneeModalVisible, setAssigneeModalVisible] = useState(false);
   const [successModalVisible, setSuccessModalVisible] = useState(false);
 
   useEffect(() => {
     dispatch(fetchCustomers());
-  }, []);
+    if (canAssignAny) {
+      void axiosClient.get('/users', { params: { page: 1, limit: 100, status: 'ACTIVE' } })
+        .then((response) => setAssignees(response.data.items))
+        .catch(() => setAssignees([]));
+    }
+  }, [canAssignAny, dispatch]);
 
   const onChangeDate = (event: any, selectedDate?: Date) => {
     if (Platform.OS === 'android') {
@@ -67,7 +78,12 @@ export default function AddTaskScreen({ navigation }: any) {
 
     setLoading(true);
     try {
-      await axiosClient.post('/tasks', { title, customer_id: customerId, deadline: deadline.toISOString() });
+      await axiosClient.post('/tasks', {
+        title,
+        customer_id: customerId,
+        deadline: deadline.toISOString(),
+        ...(assigneeId ? { assigneeId } : {}),
+      });
       setSuccessModalVisible(true);
     } catch (error) {
       Alert.alert('Lỗi', 'Không thể tạo công việc');
@@ -119,6 +135,22 @@ export default function AddTaskScreen({ navigation }: any) {
               </Text>
             )}
           </View>
+
+          {canAssignAny && (
+            <View style={{ marginBottom: 16 }}>
+              <Text style={{ fontSize: 13, fontWeight: '600', marginBottom: 6, color: theme.textSecondary }}>
+                Người thực hiện
+              </Text>
+              <TouchableOpacity
+                onPress={() => setAssigneeModalVisible(true)}
+                style={[styles.selectorBtn, { backgroundColor: theme.bgInput, borderColor: theme.border }]}
+              >
+                <Ionicons name="people-outline" size={18} color={theme.primary} style={{ marginRight: 10 }} />
+                <Text style={{ flex: 1, fontSize: 15, color: theme.textPrimary }}>{assigneeName}</Text>
+                <Ionicons name="chevron-down-outline" size={16} color={theme.textMuted} />
+              </TouchableOpacity>
+            </View>
+          )}
 
           {/* Date Picker */}
           <View style={{ marginBottom: 16 }}>
@@ -210,6 +242,46 @@ export default function AddTaskScreen({ navigation }: any) {
               onPress={() => setCustomerModalVisible(false)}
               style={{ marginTop: 16 }}
             />
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={assigneeModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setAssigneeModalVisible(false)}
+      >
+        <View style={styles.customerOverlay}>
+          <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setAssigneeModalVisible(false)} />
+          <View style={[styles.sheetContent, { backgroundColor: theme.bgCard }]}> 
+            <View style={[styles.handle, { backgroundColor: theme.border }]} />
+            <Text style={[styles.sheetTitle, { color: theme.textPrimary }]}>Chọn người thực hiện</Text>
+            <FlatList
+              data={assignees}
+              keyExtractor={(item) => item.id}
+              ItemSeparatorComponent={() => <View style={[styles.separator, { backgroundColor: theme.border }]} />}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.customerItem}
+                  onPress={() => {
+                    setAssigneeId(item.id);
+                    setAssigneeName(item.full_name);
+                    setAssigneeModalVisible(false);
+                  }}
+                >
+                  <View style={[styles.avatar, { backgroundColor: theme.primaryLight }]}> 
+                    <Text style={{ color: theme.primary, fontWeight: '700' }}>{item.full_name.charAt(0).toUpperCase()}</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: theme.textPrimary, fontWeight: '600' }}>{item.full_name}</Text>
+                    <Text style={{ color: theme.textMuted, fontSize: 12 }}>{item.role}</Text>
+                  </View>
+                  {item.id === assigneeId && <Ionicons name="checkmark-circle" size={20} color={theme.primary} />}
+                </TouchableOpacity>
+              )}
+            />
+            <AppButton title="Đóng" variant="ghost" onPress={() => setAssigneeModalVisible(false)} style={{ marginTop: 16 }} />
           </View>
         </View>
       </Modal>

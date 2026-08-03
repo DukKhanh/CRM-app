@@ -52,7 +52,7 @@ export default function EditTaskScreen({ route, navigation }: any) {
     setLoading(true);
     try {
       // Gọi API PUT /edit
-      await axiosClient.put(`/tasks/${task.id}/edit`, { 
+      await axiosClient.patch(`/tasks/${task.id}`, { 
         title, 
         customer_id: customerId, 
         deadline: deadline.toISOString() 

@@ -6,6 +6,13 @@ export interface Customer {
   name: string;
   phone?: string;
   email?: string;
+  status?: string;
+  ownerId?: string;
+  capabilities?: {
+    update: boolean;
+    delete: boolean;
+    createNote: boolean;
+  };
 }
 
 interface CustomerState {

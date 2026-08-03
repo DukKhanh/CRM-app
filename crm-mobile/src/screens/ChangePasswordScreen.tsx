@@ -6,9 +6,13 @@ import { useTheme } from '../context/ThemeContext';
 import { AppButton } from '../components/AppButton';
 import { AppInput } from '../components/AppInput';
 import { AppCard } from '../components/AppCard';
+import { useDispatch } from 'react-redux';
+import { logout } from '../store/authSlice';
+import { tokenStorage } from '../auth/tokenStorage';
 
 export default function ChangePasswordScreen({ navigation }: any) {
   const { theme } = useTheme();
+  const dispatch = useDispatch();
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -30,8 +34,9 @@ export default function ChangePasswordScreen({ navigation }: any) {
     setLoading(true);
     try {
       await axiosClient.put('/profile/change-password', { oldPassword, newPassword });
-      Alert.alert('Thành công', 'Đổi mật khẩu thành công!');
-      navigation.goBack();
+      await tokenStorage.clear();
+      dispatch(logout());
+      Alert.alert('Thành công', 'Đổi mật khẩu thành công. Vui lòng đăng nhập lại.');
     } catch (error: any) {
       Alert.alert('Lỗi', error.response?.data?.message || 'Đổi mật khẩu thất bại');
     } finally {

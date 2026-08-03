@@ -1,9 +1,8 @@
 import React, { useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Platform } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
-import { logout } from '../store/authSlice';
+import { logoutSession } from '../store/authSlice';
 import { fetchCustomers } from '../store/customerSlice';
 import { fetchTasks } from '../store/taskSlice';
 import { RootState, AppDispatch } from '../store';
@@ -26,9 +25,9 @@ export default function HomeScreen({ navigation }: any) {
   const customers = useSelector((state: RootState) => state.customer.list);
   const tasks = useSelector((state: RootState) => state.task.list);
 
-  const pendingCount = tasks.filter((t: any) => t.status === 'Pending').length;
-  const inProgressCount = tasks.filter((t: any) => t.status === 'In Progress').length;
-  const completedCount = tasks.filter((t: any) => t.status === 'Completed').length;
+  const pendingCount = tasks.filter((t: any) => t.status === 'PENDING').length;
+  const inProgressCount = tasks.filter((t: any) => t.status === 'IN_PROGRESS').length;
+  const completedCount = tasks.filter((t: any) => t.status === 'COMPLETED').length;
 
   const chartData = [
     { name: 'Pending', count: pendingCount, color: theme.warning, legendFontColor: theme.chartLegendColor, legendFontSize: 13 },
@@ -84,8 +83,7 @@ export default function HomeScreen({ navigation }: any) {
   }, [navigation]);
 
   const handleLogout = async () => {
-    await AsyncStorage.removeItem('userToken');
-    dispatch(logout());
+    await dispatch(logoutSession());
   };
 
   return (

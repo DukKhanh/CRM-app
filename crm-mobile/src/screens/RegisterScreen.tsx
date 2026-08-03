@@ -28,7 +28,7 @@ export default function RegisterScreen({ navigation }: any) {
 
   const handleRegister = async () => {
     if (!validateForm()) return;
-    
+
     setLoading(true);
     try {
       await axiosClient.post('/auth/register', {
@@ -58,7 +58,7 @@ export default function RegisterScreen({ navigation }: any) {
         }}>
           <Ionicons name="person-add" size={36} color="#fff" />
         </View>
-        <Text style={{ fontSize: 28, fontWeight: '800', color: theme.textPrimary }}>CRM Pro</Text>
+        <Text style={{ fontSize: 28, fontWeight: '800', color: theme.textPrimary }}>CRM App</Text>
         <Text style={{ fontSize: 14, color: theme.textSecondary, marginTop: 4 }}>Tạo tài khoản mới</Text>
       </View>
 
