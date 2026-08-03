@@ -21,7 +21,7 @@ jobs:
    
     defaults:
       run:
-        working-directory: crm-frontend
+        working-directory: crm-mobile
 
     steps:
       - name: Checkout repository
