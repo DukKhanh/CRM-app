@@ -1,20 +1,47 @@
-
 name: Build Android APK
+
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
+    paths:
+      - "crm-frontend/**" 
+      - ".github/workflows/frontend-build-apk.yml"
+
+concurrency:
+  group: frontend-build-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  build:
+  build-apk:
+    name: Build APK via Expo EAS
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+   
+    defaults:
+      run:
+        working-directory: crm-frontend
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 20
-      - uses: expo/expo-github-action@v8
+          cache: npm
+          cache-dependency-path: crm-frontend/package-lock.json
+
+      - name: Setup EAS CLI
+        uses: expo/expo-github-action@v8
         with:
           eas-version: latest
-          token: ${{ secrets.EXPO_TOKEN }}
-      - run: npm ci
-      - run: eas build -p android --profile preview --non-interactive
+          token: ${{ secrets.EXPO_TOKEN }} 
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build APK on Expo Cloud
+        run: eas build --platform android --profile preview --non-interactive
