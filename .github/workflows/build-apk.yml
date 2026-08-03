@@ -30,7 +30,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22 # Nâng lên Node 22 để hết cảnh báo Deprecated
+          node-version: 22
           cache: npm
           cache-dependency-path: crm-mobile/package-lock.json
 
@@ -38,7 +38,7 @@ jobs:
         uses: expo/expo-github-action@v8
         with:
           eas-version: latest
-          token: ${{ secrets.EXPO_TOKEN }} # Token xác thực Expo
+          token: ${{ secrets.EXPO_TOKEN }} 
 
       - name: Install dependencies
         run: npm ci
