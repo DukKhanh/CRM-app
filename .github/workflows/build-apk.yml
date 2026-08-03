@@ -5,8 +5,8 @@ on:
     branches:
       - main
     paths:
-      - "crm-frontend/**" 
-      - ".github/workflows/frontend-build-apk.yml"
+      - "crm-mobile/**" 
+      - ".github/workflows/build-apk.yml"
 
 concurrency:
   group: frontend-build-${{ github.ref }}
