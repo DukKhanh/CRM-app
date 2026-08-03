@@ -26,14 +26,21 @@ export default function TaskListScreen({ navigation }: any) {
   }, [navigation]);
 
   const getStatusBadge = (status: string) => {
-    if (status === 'Completed') return theme.statusCompleted;
-    if (status === 'In Progress') return theme.statusInProgress;
+    if (status === 'COMPLETED') return theme.statusCompleted;
+    if (status === 'IN_PROGRESS') return theme.statusInProgress;
     return theme.statusPending;
   };
 
+  const getStatusLabel = (status: string) => ({
+    PENDING: 'Chờ thực hiện',
+    IN_PROGRESS: 'Đang thực hiện',
+    COMPLETED: 'Đã hoàn thành',
+    CANCELLED: 'Đã hủy',
+  }[status] ?? status);
+
   const updateStatus = async (id: string, newStatus: string) => {
     try {
-      await axiosClient.put(`/tasks/${id}`, { status: newStatus });
+      await axiosClient.patch(`/tasks/${id}/status`, { status: newStatus });
       dispatch(fetchTasks());
     } catch (error) {
       Alert.alert('Lỗi', 'Không thể cập nhật trạng thái');
@@ -41,11 +48,13 @@ export default function TaskListScreen({ navigation }: any) {
   };
 
   const handleTaskPress = (task: any) => {
+    if (!task.capabilities?.updateStatus) return;
     setSelectedTask(task);
     setStatusModalVisible(true);
   };
 
   const handleLongPressTask = (task: any) => {
+    if (!task.capabilities?.update && !task.capabilities?.delete) return;
     setSelectedTask(task);
     setOptionsModalVisible(true);
   };
@@ -82,7 +91,7 @@ export default function TaskListScreen({ navigation }: any) {
               {item.title}
             </Text>
             <View style={{ backgroundColor: badge.bg, paddingHorizontal: 10, paddingVertical: 3, borderRadius: 20 }}>
-              <Text style={{ fontSize: 11, fontWeight: '700', color: badge.text }}>{item.status}</Text>
+              <Text style={{ fontSize: 11, fontWeight: '700', color: badge.text }}>{getStatusLabel(item.status)}</Text>
             </View>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 10 }}>
@@ -150,7 +159,7 @@ export default function TaskListScreen({ navigation }: any) {
 
             <TouchableOpacity
               style={[styles.optionBtn, { backgroundColor: theme.statusPending.bg }]}
-              onPress={() => handleUpdateStatusAndClose('Pending')}
+              onPress={() => handleUpdateStatusAndClose('PENDING')}
             >
               <Ionicons name="time-outline" size={20} color={theme.statusPending.text} style={styles.optionIcon} />
               <Text style={[styles.optionText, { color: theme.statusPending.text }]}>Chờ thực hiện (Pending)</Text>
@@ -158,7 +167,7 @@ export default function TaskListScreen({ navigation }: any) {
 
             <TouchableOpacity
               style={[styles.optionBtn, { backgroundColor: theme.statusInProgress.bg }]}
-              onPress={() => handleUpdateStatusAndClose('In Progress')}
+              onPress={() => handleUpdateStatusAndClose('IN_PROGRESS')}
             >
               <Ionicons name="sync-outline" size={20} color={theme.statusInProgress.text} style={styles.optionIcon} />
               <Text style={[styles.optionText, { color: theme.statusInProgress.text }]}>Đang thực hiện (In Progress)</Text>
@@ -166,7 +175,7 @@ export default function TaskListScreen({ navigation }: any) {
 
             <TouchableOpacity
               style={[styles.optionBtn, { backgroundColor: theme.statusCompleted.bg }]}
-              onPress={() => handleUpdateStatusAndClose('Completed')}
+              onPress={() => handleUpdateStatusAndClose('COMPLETED')}
             >
               <Ionicons name="checkmark-circle-outline" size={20} color={theme.statusCompleted.text} style={styles.optionIcon} />
               <Text style={[styles.optionText, { color: theme.statusCompleted.text }]}>Đã hoàn thành (Completed)</Text>
@@ -201,7 +210,7 @@ export default function TaskListScreen({ navigation }: any) {
               </Text>
             )}
 
-            <TouchableOpacity
+            {selectedTask?.capabilities?.update && <TouchableOpacity
               style={[styles.optionBtn, { backgroundColor: theme.bg, borderWidth: 1, borderColor: theme.border }]}
               onPress={() => {
                 setOptionsModalVisible(false);
@@ -210,9 +219,9 @@ export default function TaskListScreen({ navigation }: any) {
             >
               <Ionicons name="create-outline" size={20} color={theme.primary} style={styles.optionIcon} />
               <Text style={[styles.optionText, { color: theme.textPrimary }]}>Chỉnh sửa thông tin</Text>
-            </TouchableOpacity>
+            </TouchableOpacity>}
 
-            <TouchableOpacity
+            {selectedTask?.capabilities?.delete && <TouchableOpacity
               style={[styles.optionBtn, { backgroundColor: theme.dangerLight }]}
               onPress={() => {
                 setOptionsModalVisible(false);
@@ -221,7 +230,7 @@ export default function TaskListScreen({ navigation }: any) {
             >
               <Ionicons name="trash-outline" size={20} color={theme.danger} style={styles.optionIcon} />
               <Text style={[styles.optionText, { color: theme.danger }]}>Xóa công việc</Text>
-            </TouchableOpacity>
+            </TouchableOpacity>}
 
             <TouchableOpacity
               style={[styles.closeBtn, { borderColor: theme.border }]}

@@ -6,13 +6,15 @@ import authReducer from './authSlice';
 import customerReducer from './customerSlice';
 import taskReducer from './taskSlice';
 import themeReducer from './themeSlice';
+import { logout } from './authSlice';
+import { setUnauthorizedHandler } from '../api/axiosClient';
 
 // 1. Cấu hình những gì sẽ được lưu xuống bộ nhớ điện thoại
 const persistConfig = {
   key: 'root',
   storage: AsyncStorage,
   // whitelist: Chỉ định các reducer muốn lưu offline
-  whitelist: ['auth', 'customer', 'task'] 
+  whitelist: ['customer', 'task', 'theme'] 
 };
 
 // 2. Gộp các reducer lại
@@ -35,6 +37,10 @@ export const store = configureStore({
 });
 
 export const persistor = persistStore(store);
+
+setUnauthorizedHandler(() => {
+  store.dispatch(logout());
+});
 
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;

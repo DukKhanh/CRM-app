@@ -30,7 +30,7 @@ export default function EditCustomerScreen({ route, navigation }: any) {
 
     setLoading(true);
     try {
-      await axiosClient.put(`/customers/${customer.id}`, { name, phone, email });
+      await axiosClient.patch(`/customers/${customer.id}`, { name, phone, email });
       dispatch(fetchCustomers());
       setSuccessModalVisible(true);
     } catch (error: any) {

@@ -107,14 +107,20 @@ export default function CustomerDetailScreen({ route, navigation }: any) {
           </View>
         </View>
 
-        <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
-          <AppButton title="Sửa" icon="create-outline" variant="warning" style={{ flex: 1 }}
-            onPress={() => navigation.navigate('EditCustomer', { customer })}
-          />
-          <AppButton title="Xóa" icon="trash-outline" variant="danger" style={{ flex: 1 }}
-            onPress={handleDelete}
-          />
-        </View>
+        {(customer.capabilities?.update || customer.capabilities?.delete) && (
+          <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
+            {customer.capabilities?.update && (
+              <AppButton title="Sửa" icon="create-outline" variant="warning" style={{ flex: 1 }}
+                onPress={() => navigation.navigate('EditCustomer', { customer })}
+              />
+            )}
+            {customer.capabilities?.delete && (
+              <AppButton title="Xóa" icon="trash-outline" variant="danger" style={{ flex: 1 }}
+                onPress={handleDelete}
+              />
+            )}
+          </View>
+        )}
       </AppCard>
 
       {/* Notes Section */}
@@ -122,20 +128,22 @@ export default function CustomerDetailScreen({ route, navigation }: any) {
         Lịch sử Ghi chú
       </Text>
 
-      <View style={{ marginBottom: 16 }}>
-        <AppInput
-          placeholder="Nhập nội dung chăm sóc..."
-          value={newNote}
-          onChangeText={setNewNote}
-          style={{ marginBottom: 10 }}
-        />
+      {customer.capabilities?.createNote && (
+        <View style={{ marginBottom: 16 }}>
+          <AppInput
+            placeholder="Nhập nội dung chăm sóc..."
+            value={newNote}
+            onChangeText={setNewNote}
+            style={{ marginBottom: 10 }}
+          />
 
-        <AppButton
-          title="Gửi"
-          onPress={handleAddNote}
-          loading={addingNote}
-        />
-      </View>
+          <AppButton
+            title="Gửi"
+            onPress={handleAddNote}
+            loading={addingNote}
+          />
+        </View>
+      )}
 
       <FlatList
         scrollEnabled={false}

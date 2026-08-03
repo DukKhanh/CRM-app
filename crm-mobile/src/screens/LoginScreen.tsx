@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, Alert, TouchableOpacity } from 'react-native';
 import { useDispatch } from 'react-redux';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import axiosClient from '../api/axiosClient';
 import { loginSuccess } from '../store/authSlice';
@@ -9,6 +8,7 @@ import { useTheme } from '../context/ThemeContext';
 import { AppButton } from '../components/AppButton';
 import { AppInput } from '../components/AppInput';
 import { AppCard } from '../components/AppCard';
+import { tokenStorage } from '../auth/tokenStorage';
 
 export default function LoginScreen({ navigation }: any) {
   const { theme } = useTheme();
@@ -34,9 +34,8 @@ export default function LoginScreen({ navigation }: any) {
       const response = await axiosClient.post('/auth/login', { email, password });
       const { token, refreshToken, user } = response.data;
 
-      await AsyncStorage.setItem('userToken', token);
-      await AsyncStorage.setItem('refreshToken', refreshToken);
-      dispatch(loginSuccess({ user, token }));
+      await tokenStorage.save(token, refreshToken);
+      dispatch(loginSuccess({ user }));
       
       Alert.alert('Thành công', 'Đăng nhập thành công!');
     } catch (error: any) {

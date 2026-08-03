@@ -4,26 +4,20 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useSelector } from 'react-redux';
 import { RootState } from '../store';
 import { useTheme } from '../context/ThemeContext';
+import { ActivityIndicator, View } from 'react-native';
 
-import HomeScreen from '../screens/HomeScreen';
-import CustomerListScreen from '../screens/CustomerListScreen';
-import AddCustomerScreen from '../screens/AddCustomerScreen';
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
-import TaskListScreen from '../screens/TaskListScreen';
-import AddTaskScreen from '../screens/AddTaskScreen';
-import ProfileScreen from '../screens/ProfileScreen';
-import CustomerDetailScreen from '../screens/CustomerDetailScreen';
-import EditCustomerScreen from '../screens/EditCustomerScreen';
-import EditTaskScreen from '../screens/EditTaskScreen';
 import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
-import ChangePasswordScreen from '../screens/ChangePasswordScreen';
+import AdminNavigator from './AdminNavigator';
+import CrmNavigator from './CrmNavigator';
+import { authenticatedExperience } from '../authorization/permissions';
 
 const Stack = createNativeStackNavigator();
 
 export default function AppNavigator() {
   const { theme } = useTheme();
-  const userToken = useSelector((state: RootState) => state.auth.token);
+  const { isAuthenticated, isHydrating, user } = useSelector((state: RootState) => state.auth);
 
   const screenOptions = {
     headerStyle: { backgroundColor: theme.bgHeader },
@@ -33,10 +27,18 @@ export default function AppNavigator() {
     contentStyle: { backgroundColor: theme.bg },
   };
 
+  if (isHydrating) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.bg }}>
+        <ActivityIndicator size="large" color={theme.primary} />
+      </View>
+    );
+  }
+
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={screenOptions}>
-        {userToken == null ? (
+        {!isAuthenticated ? (
           <>
             <Stack.Screen
               name="Login"
@@ -54,68 +56,10 @@ export default function AppNavigator() {
               options={{ title: 'Quên mật khẩu' }}
             />
           </>
+        ) : authenticatedExperience(user) === 'admin' ? (
+          <Stack.Screen name="AdminApp" component={AdminNavigator} options={{ headerShown: false }} />
         ) : (
-          <>
-            <Stack.Screen
-              name="Home"
-              component={HomeScreen}
-              options={{ headerShown: false }}
-            />
-
-            <Stack.Screen
-              name="CustomerList"
-              component={CustomerListScreen}
-              options={{ title: 'Danh sách Khách Hàng' }}
-            />
-
-            <Stack.Screen
-              name="AddCustomer"
-              component={AddCustomerScreen}
-              options={{ title: 'Thêm Khách Hàng' }}
-            />
-
-            <Stack.Screen
-              name="TaskList"
-              component={TaskListScreen}
-              options={{ title: 'Danh sách Công Việc' }}
-            />
-
-            <Stack.Screen
-              name="AddTask"
-              component={AddTaskScreen}
-              options={{ title: 'Thêm Công Việc' }}
-            />
-
-            <Stack.Screen
-              name="Profile"
-              component={ProfileScreen}
-              options={{ title: 'Hồ Sơ Cá Nhân' }}
-            />
-
-            <Stack.Screen
-              name="CustomerDetail"
-              component={CustomerDetailScreen}
-              options={{ title: 'Chi tiết Khách Hàng' }}
-            />
-
-            <Stack.Screen
-              name="EditCustomer"
-              component={EditCustomerScreen}
-              options={{ title: 'Chỉnh sửa Khách Hàng' }}
-            />
-
-            <Stack.Screen
-              name="EditTask"
-              component={EditTaskScreen}
-              options={{ title: 'Chỉnh sửa Công Việc' }}
-            />
-
-            <Stack.Screen
-              name="ChangePassword"
-              component={ChangePasswordScreen}
-              options={{ title: 'Đổi mật khẩu' }}
-            />
-          </>
+          <Stack.Screen name="CrmApp" component={CrmNavigator} options={{ headerShown: false }} />
         )}
       </Stack.Navigator>
     </NavigationContainer>
