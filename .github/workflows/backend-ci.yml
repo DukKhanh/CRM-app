@@ -50,6 +50,8 @@ jobs:
       PORT: 3000
 
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/crm_test?schema=public
+      # THÊM DÒNG NÀY ĐỂ FIX LỖI P1012 PRISMA:
+      DIRECT_URL: postgresql://postgres:postgres@localhost:5432/crm_test?schema=public
 
       JWT_ACCESS_SECRET: test-access-secret-at-least-32-characters-long
       JWT_REFRESH_SECRET: test-refresh-secret-at-least-32-characters-long
