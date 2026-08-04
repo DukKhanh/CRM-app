@@ -29,7 +29,7 @@ function SessionBootstrap() {
 export default function App() {
   return (
     <Provider store={store}>
-      {/* PersistGate sẽ giữ màn hình chờ (loading) cho đến khi lấy xong dữ liệu offline */}
+      {}
       <PersistGate loading={null} persistor={persistor}>
         <ThemeProvider>
           <SessionBootstrap />

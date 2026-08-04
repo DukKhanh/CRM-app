@@ -9,15 +9,13 @@ import themeReducer from './themeSlice';
 import { logout } from './authSlice';
 import { setUnauthorizedHandler } from '../api/axiosClient';
 
-// 1. Cấu hình những gì sẽ được lưu xuống bộ nhớ điện thoại
+
 const persistConfig = {
   key: 'root',
   storage: AsyncStorage,
-  // whitelist: Chỉ định các reducer muốn lưu offline
   whitelist: ['customer', 'task', 'theme'] 
 };
 
-// 2. Gộp các reducer lại
 const rootReducer = combineReducers({
   auth: authReducer,
   customer: customerReducer,
@@ -25,14 +23,13 @@ const rootReducer = combineReducers({
   theme: themeReducer, 
 });
 
-// 3. Tạo reducer có khả năng lưu trữ (persisted)
 const persistedReducer = persistReducer(persistConfig, rootReducer);
 
 export const store = configureStore({
   reducer: persistedReducer,
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
-      serializableCheck: false, // Tắt cảnh báo đỏ của Redux Persist
+      serializableCheck: false, 
     }),
 });
 

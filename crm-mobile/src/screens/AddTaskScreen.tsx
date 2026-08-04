@@ -29,7 +29,7 @@ export default function AddTaskScreen({ navigation }: any) {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{ title?: string; customerId?: string }>({});
 
-  // Modal states
+  
   const [customerModalVisible, setCustomerModalVisible] = useState(false);
   const [assigneeModalVisible, setAssigneeModalVisible] = useState(false);
   const [successModalVisible, setSuccessModalVisible] = useState(false);
@@ -324,13 +324,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 14,
   },
-  // Overlay cho bottom sheet — nền đen mờ phủ toàn màn hình, content dính đáy
+  
   customerOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'flex-end',
   },
-  // Overlay cho success dialog — nền đen mờ, content căn giữa
+  
   successOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',

@@ -117,7 +117,7 @@ export async function revokeToken(refreshToken: string, metadata: RequestMetadat
     });
     await recordSecurityEvent({ userId: payload.userId, type: 'LOGOUT', sessionId: payload.sessionId, familyId: payload.familyId, ...metadata });
   } catch {
-    // Logout remains idempotent and does not reveal token validity.
+
   }
 }
 

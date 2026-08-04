@@ -7,9 +7,7 @@ import { validate } from '../middlewares/validate.middleware';
 import { changePasswordSchema, pushTokenSchema, updateProfileSchema } from '../schemas/profile.schema';
 
 const router = Router();
-// Phải có Token mới được vào Profile
 router.use(verifyToken);
-
 router.get('/', getProfile);
 router.put('/', validate(updateProfileSchema), updateProfile);
 router.put('/change-password', validate(changePasswordSchema), changePassword);

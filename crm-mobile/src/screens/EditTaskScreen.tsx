@@ -18,7 +18,7 @@ export default function EditTaskScreen({ route, navigation }: any) {
   const dispatch = useDispatch<AppDispatch>();
   const customers = useSelector((state: RootState) => state.customer.list);
 
-  // Lấy task cũ được truyền sang
+
   const { task } = route.params;
 
   const [title, setTitle] = useState(task.title || '');
@@ -51,17 +51,16 @@ export default function EditTaskScreen({ route, navigation }: any) {
 
     setLoading(true);
     try {
-      // Gọi API PUT /edit
-      await axiosClient.patch(`/tasks/${task.id}`, { 
-        title, 
-        customer_id: customerId, 
-        deadline: deadline.toISOString() 
+      await axiosClient.patch(`/tasks/${task.id}`, {
+        title,
+        customer_id: customerId,
+        deadline: deadline.toISOString()
       });
       Alert.alert('Thành công', 'Đã cập nhật công việc!');
-      dispatch(fetchTasks()); // Tải lại danh sách
+      dispatch(fetchTasks());
       navigation.goBack();
-    } catch (error) { 
-      Alert.alert('Lỗi', 'Không thể cập nhật công việc'); 
+    } catch (error) {
+      Alert.alert('Lỗi', 'Không thể cập nhật công việc');
     } finally {
       setLoading(false);
     }

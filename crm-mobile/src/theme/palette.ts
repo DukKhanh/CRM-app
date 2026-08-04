@@ -15,7 +15,7 @@ export const lightTheme = {
 
 export const darkTheme = {
   colors: {
-    background: '#0b1220', // deep blue-black
+    background: '#0b1220', 
     surface: '#0f1724',
     card: '#111827',
     textPrimary: '#e6eef8',

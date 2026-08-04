@@ -9,9 +9,9 @@ export const lightTheme = {
   bgDisabled: '#EDEDED',
 
   // Brand colors
-  primary: '#3B6BF7',        // Xanh dương đậm — màu chủ đạo
-  primaryLight: '#EEF2FF',   // Nền nhạt của primary
-  primaryDark: '#2753D9',    // Hover / pressed state
+  primary: '#3B6BF7',        
+  primaryLight: '#EEF2FF',   
+  primaryDark: '#2753D9',    
   success: '#16A34A',
   successLight: '#DCFCE7',
   warning: '#D97706',

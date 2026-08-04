@@ -6,7 +6,7 @@ import { AppError } from '../errors/AppError';
 import { permissionsForRole } from '../modules/authorization/permissions';
 import { revokeAllUserSessions } from '../services/session.service';
 
-// Lấy thông tin cá nhân
+
 export const getProfile = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const userId = req.user.userId;
@@ -21,7 +21,7 @@ export const getProfile = async (req: AuthRequest, res: Response, next: NextFunc
   }
 };
 
-// Cập nhật thông tin (Tên và Avatar)
+
 export const updateProfile = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const userId = req.user.userId;

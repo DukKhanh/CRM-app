@@ -24,7 +24,7 @@ const initialState: CustomerState = {
   loading: false,
 };
 
-// Gọi API lấy danh sách KH từ Backend
+
 export const fetchCustomers = createAsyncThunk('customer/fetchAll', async () => {
   const response = await axiosClient.get('/customers');
   return response.data;
